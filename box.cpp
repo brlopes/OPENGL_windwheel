@@ -12,18 +12,16 @@
 #include <math.h>
 
 // person position in the environment
-void move_camera(int specialKey,char normalKey);
 void update_camera();
 
 GLdouble  g_playerPos[] = { 0.0, 1, 10.0 };//{ 0.0, 0.5, 10.0 };
 GLdouble  g_lookAt[] = { 0.0, 0.0, 0.0 };
 GLfloat   g_viewAngle = -90.0;
-GLfloat   g_elevationAngle = 0.0;
+GLfloat   g_elevationAngle = 6.0;
 float rad =0;
 const float DEFAULT_SPEED   = 0.5f;
 //=========================================================//
 //=========================================================//
-GLvoid  DrawGround();
 
 GLvoid  DrawNormalObjects(GLfloat rotation);
 
@@ -40,7 +38,6 @@ void cleanUP_data(void);
 const int   WORLD_SIZE = 100;
 //=========================================================//
 //=========================================================//
-static void text_onScreen(int row, int col, const char *fmt, ...);
 //=========================================================//
 //=========================================================//
 typedef struct
@@ -94,70 +91,9 @@ static void resize(int width, int height)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity() ;
 }
+
 //=========================================================//
 //=========================================================//
-GLvoid DrawGround()
-{
-  // enable blending for anti-aliased lines
-  glEnable(GL_BLEND);
-
-  // set the color to a bright blue
-  glColor3f(0.5f, 0.7f, 1.0f);
-
-  // draw the lines
-  glBegin(GL_LINES);
-    for (int x = -WORLD_SIZE; x < WORLD_SIZE; x += 6)
-    {
-      glVertex3i(x, 0, -WORLD_SIZE);
-      glVertex3i(x, 0, WORLD_SIZE);
-    }
-
-    for (int z = -WORLD_SIZE; z < WORLD_SIZE; z += 6)
-    {
-      glVertex3i(-WORLD_SIZE, 0, z);
-      glVertex3i(WORLD_SIZE, 0, z);
-    }
-  glEnd();
-
-  // turn blending off
-  glDisable(GL_BLEND);
-} // end DrawGround()
-//=========================================================//
-//=========================================================//
-static void shapesPrintf (int row, int col, const char *fmt, ...)
-{
-    static char buf[256];
-    int viewport[4];
-    void *font = GLUT_BITMAP_9_BY_15;
-    va_list args;
-
-    va_start(args, fmt);
-    (void) vsprintf (buf, fmt, args);
-    va_end(args);
-
-    glGetIntegerv(GL_VIEWPORT,viewport);
-
-    glPushMatrix();
-    glLoadIdentity();
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-
-        glOrtho(0,viewport[2],0,viewport[3],-1,1);
-/*
-        glRasterPos2i(
-              glutBitmapWidth(font, ' ') * col,
-            - glutBitmapHeight(font) * (row+2) + viewport[3]
-        );
-        glutBitmapString (font, (unsigned char *) buf);
-*/
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-}
-//=========================================================//
-static int function_index;
 static int slices = 16;
 static int stacks = 16;
 static double irad = .25;
@@ -246,70 +182,7 @@ static const entry table [] =
     //ENTRY (Cylinder)
 };
 #undef ENTRY
-//=========================================================//
-//=========================================================//
-GLvoid clock3D(){
 
-    int ViewPosX=0,ViewPosZ=-8;
-
-    //glEnable(GL_LIGHTING);
-
-    glColor3d(0,0,1);
-
-   glPushMatrix();
-   // draw blue basis
-       //--------------------------------------------//
-       glTranslatef (ViewPosX, 1, ViewPosZ);// Set Position Figure
-
-       glRotatef ((GLfloat) rotateBase_degrees, 0.0, 0.0, 1.0); // rotate
-
-       glTranslatef (0.0, -0.3, 0.0);//define central base of rotation
-
-       glPushMatrix();
-            table[1].solid ();
-       glPopMatrix();
-       //............................................//
-       glPushMatrix();
-       // draw red pointer
-            glRotatef(rotatePointer_degrees,0,0,1);
-            glTranslatef(0,1.5,0.2);
-
-            glColor3d(1,0,0);
-
-            glPushMatrix();
-                glScalef(0.3,2,0.3);
-                table[1].solid ();
-            glPopMatrix();
-
-        glPopMatrix();
-       //............................................//
-       //............................................//
-       glPushMatrix();
-       // draw yellow pointer
-            glRotatef(rotatePointer_degrees*-1,0,0,1);
-            glTranslatef(0,1.5,-0.2);
-
-            glColor3d(1,1,0);
-
-            glPushMatrix();
-                glScalef(0.3,2,0.3);
-                table[1].solid ();
-            glPopMatrix();
-
-        glPopMatrix();
-       //............................................//
-
-       //--------------------------------------------//
-    // close the basis
-    glPopMatrix();
-
-    //glDisable(GL_LIGHTING);
-   // glColor3d(0.1,0.1,0.4);
-
-    shapesPrintf (1, 3, "Prof. Adriano Cavalcanti / Biomechanics / TUT");
-    shapesPrintf (2, 3, " Press A: rotateBase ++  // B: rotateBase --");
-    shapesPrintf (3, 3, " Press C: rotatePointer ++  // D: rotatePointer --");
-}
 //=========================================================//
 //=========================================================//
 GLvoid DrawNormalObjects(GLfloat rotation)
@@ -355,7 +228,7 @@ GLvoid DrawNormalObjects(GLfloat rotation)
     glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, rand() % 128);
     glColor3f(1,1,1);
     glTranslatef(0, 0, -8);
-    glRotatef(-90, 1.0, 0.0, 0.0);
+    glRotatef(-90, 1.0, 0.0, rotateBase_degrees);
     gluCylinder(g_flatshadedObject, 0.5, 0.5, 6.0, 32, 4);
   glPopMatrix();
 
@@ -392,144 +265,47 @@ static void display(void)
     //glDisable(GL_LIGHTING);
     glColor3d(0.1,0.1,0.4);
 
-    text_onScreen(0, 3, "Prof. Adriano Cavalcanti / A385 Computer Graphics / UAA");
-    text_onScreen(2, 3, "- look up or down: A / Z");
-    text_onScreen(3, 3, "- look right/left: arrows ->/<-");
-    text_onScreen(4, 3, "- walk forward/backward: arrows UP/Down");
-
-    DrawGround();
-
     glutSwapBuffers();
 }
 //=========================================================//
 //=========================================================//
 static void keyboard(unsigned char key, int x, int y)
-{ int number=-1;
-
-    move_camera(number,key);
-
-    glutPostRedisplay();
-}
-//=========================================================//
-//=========================================================//
-void move_camera(int specialKEY,char normalKEY)
 {
+	//rotation, absolutely bbbbbroken rn
 
-    // clock input
-    switch (specialKEY)
-    {
-    case GLUT_KEY_PAGE_UP:    ++function_index; break;
-    case GLUT_KEY_PAGE_DOWN:  --function_index; break;
-    case GLUT_KEY_UP:         orad *= 2;        break;
-    case GLUT_KEY_DOWN:       orad /= 2;        break;
+	switch (key)
+	   {
+	      case 'l':
+	          rotateBase_degrees++;
+	          break;
+	      case 'L':
+	          rotateBase_degrees++;
+	          break;
+	      case 'r':
+	    	  rotateBase_degrees--;
+	    	  break;
+	      case 'R':
+	    	  rotateBase_degrees--;
+	    	  break;
+	      case '1':
+	    	  // wheelSpeed = 10
+	    	  break;
+	      case '2':
+	    	  // wheelSpeed = 50
+	    	  break;
+	      case '3':
+	    	  // wheelSpeed = 200
+	    	  break;
+	      default:
+	          break;
+	   }
 
-    case GLUT_KEY_RIGHT:      irad *= 2;        break;
-    case GLUT_KEY_LEFT:       irad /= 2;        break;
-
-    default:
-        break;
-    }
-    if (0 > function_index)
-        function_index = NUMBEROF (table) - 1;
-    if (NUMBEROF (table) <= ( unsigned )function_index)
-        function_index = 0;
-    // keyboard :: normal keys
-    switch(normalKEY)
-    {
-		case 'E':
-		   rotateBase_degrees++;
-		   break;
-		case 'e':
-		   rotateBase_degrees++;
-		   break;
-		case 'B':
-		   rotateBase_degrees--;
-		   break;
-		case 'b':
-		   rotateBase_degrees--;
-		   break;
-		case 'C':
-		   rotatePointer_degrees++;
-		   break;
-		case 'c':
-		   rotatePointer_degrees++;
-		   break;
-		case 'D':
-		   rotatePointer_degrees--;
-		   break;
-		case 'd':
-		   rotatePointer_degrees--;
-		   break;
-		default:
-		{   break;
-		}
-	}
-    // end of clock input
-
-
-    // keyboard :: normal keys
-    switch(normalKEY)
-    {   // looking up
-        case 'A':
-        case 'a':    g_elevationAngle += 2.0; break;
-       // looking down
-        case 'Z':
-        case 'z':g_elevationAngle -= 2.0;  break;
-
-        default:
-        {    break;
-        }
-    }
-
-    // special :: special keys
-    switch(specialKEY)
-    {   // camera setup
-        // check if it is moving the view to look left
-        case GLUT_KEY_LEFT:
-        {
-            g_viewAngle -= 2.0;
-            // calculate camera rotation angle radians
-            rad =  float(3.14159 * g_viewAngle / 180.0f);
-            break;
-        }
-        // check if it is moving the view to look right
-        case GLUT_KEY_RIGHT:
-        {
-             g_viewAngle += 2.0;
-            // calculate camera rotation angle radians
-            rad =  float(3.14159 * g_viewAngle / 180.0f);
-            break;
-        }
-        // pressing keys Up/Down, update coordinates "x" and "z"
-        // based on speed and angle of view.
-        case GLUT_KEY_UP:
-        {
-            g_playerPos[2] += sin(rad) * DEFAULT_SPEED;
-            g_playerPos[0] += cos(rad) * DEFAULT_SPEED;
-            break;
-        }
-        case GLUT_KEY_DOWN:
-        {
-            g_playerPos[2] -= sin(rad) * DEFAULT_SPEED;
-            g_playerPos[0] -= cos(rad) * DEFAULT_SPEED;
-            break;
-        }
-        default:
-        {   break;
-        }
-    }
-} // End move_camera()
-//=========================================================//
-//=========================================================//
-static void special(int key, int x, int y)
-{   char letter=' ';
-
-    move_camera(key,letter);
 
     glutPostRedisplay();
 }
-
 //=========================================================//
+//=========================================================//
+
 //=========================================================//
 static void idle(void)
 {
@@ -629,12 +405,11 @@ int main(int argc, char *argv[])
 
     init_data();
 
-    glutCreateWindow("A385 Computer Graphics");
+    glutCreateWindow("Wind Wheel");
 
     glutReshapeFunc(resize);
     glutDisplayFunc(display);
     glutKeyboardFunc(keyboard);
-    glutSpecialFunc(special);
     glutIdleFunc(idle);
 
     // environment background color
@@ -653,4 +428,4 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
 }
 //=========================================================//
-//======================================================,===//
+//=========================================================//
