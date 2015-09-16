@@ -4,13 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../box.cpp 
+../windwheel.cpp 
 
 OBJS += \
-./box.o 
+./windwheel.o 
 
 CPP_DEPS += \
-./box.d 
+./windwheel.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

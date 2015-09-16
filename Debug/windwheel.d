@@ -1,0 +1,1 @@
+windwheel.d: ../windwheel.cpp
