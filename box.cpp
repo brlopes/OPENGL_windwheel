@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-// person position in the environment
+// position camera in the environment
 void update_camera();
 
 GLdouble  g_playerPos[] = { 0.0, 1, 10.0 };//{ 0.0, 0.5, 10.0 };
@@ -33,13 +33,10 @@ void setup_sceneEffects(void);
 GLUquadricObj *g_normalObject     = NULL;
 GLUquadricObj *g_wireframeObject  = NULL;
 GLUquadricObj *g_flatshadedObject = NULL;
-void cleanUP_data(void);
+void cleanup_data(void);
 
 const int   WORLD_SIZE = 100;
-//=========================================================//
-//=========================================================//
-//=========================================================//
-//=========================================================//
+
 typedef struct
 {
     const char * const name;
@@ -47,33 +44,7 @@ typedef struct
     void (*wire)  (void);
 } entry;
 
-//=========================================================//
-//=========================================================//
-static void text_onScreen (int row, int col, const char *fmt, ...)
-{
-    static char buf[256];
-    int viewport[4];
-    //void *font = GLUT_BITMAP_9_BY_15;
-    va_list args;
 
-    va_start(args, fmt);
-    (void) vsprintf (buf, fmt, args);
-    va_end(args);
-
-    glGetIntegerv(GL_VIEWPORT,viewport);
-
-    glPushMatrix();
-    glLoadIdentity();
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-
-    glOrtho(0,viewport[2],0,viewport[3],-1,1);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-}
 //=========================================================//
 //=========================================================//
 static void resize(int width, int height)
@@ -92,155 +63,103 @@ static void resize(int width, int height)
     glLoadIdentity() ;
 }
 
-//=========================================================//
-//=========================================================//
-static int slices = 16;
-static int stacks = 16;
-static double irad = .25;
-static double orad = 1.0;
-/*
- * This macro is only intended to be used on arrays, of course.
- */
-#define NUMBEROF(x) ((sizeof(x))/(sizeof(x[0])))
-//=========================================================================//
-/*
- * These one-liners draw particular objects, fetching appropriate
- * information from the above globals.  They are just thin wrappers
- * for the OpenGLUT objects.
- */
-static void drawSolidTetrahedron(void)
-    { glutSolidTetrahedron (); }
-static void drawWireTetrahedron(void)
-    { glutWireTetrahedron (); }
-static void drawSolidCube(void)
-    { glutSolidCube(1); }
-static void drawWireCube(void)
-    { glutWireCube(1); }
-static void drawSolidOctahedron(void)
-    { glutSolidOctahedron (); }
-static void drawWireOctahedron(void)
-    { glutWireOctahedron (); }
-static void drawSolidDodecahedron(void)
-    { glutSolidDodecahedron (); }
-static void drawWireDodecahedron(void)
-    { glutWireDodecahedron (); }
-/*
-static void drawSolidRhombicDodecahedron(void)
-    { glutSolidRhombicDodecahedron (); }
-static void drawWireRhombicDodecahedron(void)
-    { glutWireRhombicDodecahedron (); }
-*/
-static void drawSolidIcosahedron(void)
-    { glutSolidIcosahedron (); }
-static void drawWireIcosahedron(void)
-    { glutWireIcosahedron (); }
-/*
-static void drawSolidSierpinskiSponge(void)
-    { glutSolidSierpinskiSponge (depth, offset, 1); }
-static void drawWireSierpinskiSponge(void)
-    { glutWireSierpinskiSponge (depth, offset, 1); }
-*/
-static void drawSolidTeapot(void)
-    { glutSolidTeapot(1); }
-static void drawWireTeapot(void)
-    { glutWireTeapot(1); }
-static void drawSolidTorus(void)
-    { glutSolidTorus(irad,orad,slices,stacks); }
-static void drawWireTorus(void)
-    { glutWireTorus (irad,orad,slices,stacks); }
-static void drawSolidSphere(void)
-    { glutSolidSphere(1,slices,stacks); }
-static void drawWireSphere(void)
-    { glutWireSphere(1,slices,stacks); }
-static void drawSolidCone(void)
-    { glutSolidCone(1,1,slices,stacks); }
-static void drawWireCone(void)
-    { glutWireCone(1,1,slices,stacks); }
-/*
-static void drawSolidCylinder(void)
-    { glutSolidCylinder(1,1,slices,stacks); }
-static void drawWireCylinder(void)
-    { glutWireCylinder(1,1,slices,stacks); }
-*/
-//=========================================================================//
+//static stuff
+float wheelRotateFactor=1.0;
 float rotateBase_degrees=0;
 float rotatePointer_degrees=0;
-#define ENTRY(e) {#e, drawSolid##e, drawWire##e}
-static const entry table [] =
+
+void drawColorFan(GLfloat radius, int sections)
 {
-    ENTRY (Tetrahedron),
-    ENTRY (Cube),
-    ENTRY (Octahedron),
-    ENTRY (Dodecahedron),
-    //ENTRY (RhombicDodecahedron),
-    ENTRY (Icosahedron),
-    //ENTRY (SierpinskiSponge),
-    ENTRY (Teapot),
-    ENTRY (Torus),
-    ENTRY (Sphere),
-    ENTRY (Cone)//,
-    //ENTRY (Cylinder)
-};
-#undef ENTRY
+	//DRAWS A WHEEL WITH RAINBOW COLORS FOR SECTIONS
+
+	//define light so rotation doesn't change the matrix
+	GLfloat light_ambient[] = { 1.0, 1.0, 1.0, 0};
+	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+
+    glBegin(GL_TRIANGLE_FAN);
+        int i;
+        glVertex2f(0.0, 0.0);
+        for(i = 0; i <= sections;i++) {
+
+        	//circle-like trianglefan
+            glVertex2f(radius*cos(i*2.0 * 3.14159 / sections),
+                       radius*sin(i*2.0 * 3.14159 / sections));
+
+            //set color sections
+            switch (i%6)
+            {
+            case 0:
+                glColor3f(1.0f, 0.0f, 0.0f);
+                break;
+            case 1:
+                glColor3f(1.0f, 0.5f, 0.0f);
+                break;
+            case 2:
+                glColor3f(1.0f, 1.0f, 0.0f);
+                break;
+            case 3:
+                glColor3f(0.0f, 1.0f, 0.0f);
+                break;
+            case 4:
+                glColor3f(0.0f, 0.0f, 1.0f);
+                break;
+            case 5:
+                glColor3f(1.0f, 0.0f, 1.0f);
+                break;
+            }
+        }
+
+    glEnd();
+}
 
 //=========================================================//
 //=========================================================//
 GLvoid DrawNormalObjects(GLfloat rotation)
 {
-  // make sure the random color values we get are the same every time
-  srand(200);
+  // draw every object here, passing in any vars needed if they're not global
 
   // save the existing color properties
   glPushAttrib(GL_CURRENT_BIT);
 
-    //clock3D();
-
-  //THIS IS IT
-  // a red disk with a hole in it
   glPushMatrix();
-    glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, rand() % 128);
-    glColor3f(1,0,0);
-    glTranslatef(0, 6, -7);
-    glRotatef(rotation * 6.0f, 0.0, 0.0, 1.0);
-    gluDisk(g_normalObject, 1.5f, 4.0f, 6, 1);
-  glPopMatrix();
 
-  //green
-  glPushMatrix();
+    //STEM cylinder
     glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, rand() % 128);
-    glColor3f(0,1,0);
-    glTranslatef(0, 5, -6);
-    glRotatef(rotation * -5.0f, 0.0, 0.0, 1.0);
-    gluDisk(g_normalObject, 1.0f, 3.0f, 6, 1);
-  glPopMatrix();
-
-  //blue
-  glPushMatrix();
-    glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, rand() % 128);
-    glColor3f(0,0,1);
-    glTranslatef(0, 5, -5);
-    glRotatef(rotation * 3.0f, 0.0, 0.0, 1.0);
-    gluDisk(g_normalObject, 0.5f, 2.0f, 6, 1);
-  glPopMatrix();
-
-  // windwheel stem
-  glPushMatrix();
-    glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, rand() % 128);
-    glColor3f(1,1,1);
+    glColor3f(0,1,1);
     glTranslatef(0, 0, -8);
-    glRotatef(-90, 1.0, 0.0, rotateBase_degrees);
+    glRotatef(-90, 1.0, 0.0, 0);
+    glRotatef(rotateBase_degrees, 0.0, 0.0, 1.0);
     gluCylinder(g_flatshadedObject, 0.5, 0.5, 6.0, 32, 4);
-  glPopMatrix();
 
+    //pipe on disks
+    glTranslatef(0, 0, 5);
+    glRotatef(-270, 1, 0, 0);
+    gluCylinder(g_flatshadedObject, 0.5, 0.5, 4.0, 32, 4);
+
+    //large windwheel
+    glColor3f(1,0,0);
+    glTranslatef(0,0,1);
+    glRotatef(rotation * 3.0f * wheelRotateFactor, 0.0, 0.0, 1.0);
+    drawColorFan(4, 36); // radius is 5, 36 is num triangles
+
+    //medium wheel
+    glColor3f(0,1,0);
+    glTranslatef(0,0,1);
+    glRotatef(rotation * -3.50f * wheelRotateFactor, 0.0, 0.0, 1.0);
+    drawColorFan(3, 36);
+
+    //small wheel
+    glTranslatef(0,0,1);
+    glRotatef(rotation * 0.25f * wheelRotateFactor, 0.0, 0.0, 1.0);
+    drawColorFan(2, 36);
+
+  glPopMatrix();
 
   // restore the previous color values
   glPopAttrib();
-} // end DrawNormalObjects()
-//=========================================================//
-//=========================================================//
+}
 
-//=========================================================//
-//=========================================================//
+
 static void display(void)
 {
     update_camera();
@@ -271,41 +190,39 @@ static void display(void)
 //=========================================================//
 static void keyboard(unsigned char key, int x, int y)
 {
-	//rotation, absolutely bbbbbroken rn
+	//map rotation of the wheel and set speeds
 
-	switch (key)
-	   {
-	      case 'l':
-	          rotateBase_degrees++;
-	          break;
-	      case 'L':
-	          rotateBase_degrees++;
-	          break;
-	      case 'r':
-	    	  rotateBase_degrees--;
-	    	  break;
-	      case 'R':
-	    	  rotateBase_degrees--;
-	    	  break;
-	      case '1':
-	    	  // wheelSpeed = 10
-	    	  break;
-	      case '2':
-	    	  // wheelSpeed = 50
-	    	  break;
-	      case '3':
-	    	  // wheelSpeed = 200
-	    	  break;
-	      default:
-	          break;
-	   }
+        switch (key)
+           {
+              case 'l':
+                  rotateBase_degrees--;
+                  break;
+              case 'L':
+                  rotateBase_degrees--;
+                  break;
+              case 'r':
+                  rotateBase_degrees++;
+                  break;
+              case 'R':
+                  rotateBase_degrees++;
+                  break;
+              case '1':
+                  wheelRotateFactor=1.0;
+                  break;
+              case '2':
+                  wheelRotateFactor=2.0;
+                  break;
+              case '3':
+                  wheelRotateFactor=3.0;
+                  break;
+              default:
+                  break;
+           }
 
 
     glutPostRedisplay();
 }
 //=========================================================//
-//=========================================================//
-
 //=========================================================//
 static void idle(void)
 {
@@ -371,7 +288,10 @@ void setup_sceneEffects(void)
 //=========================================================//
 void init_data(void)
 {
+  //init lighting
   setup_sceneEffects();
+
+  //create quadrics
   // create a normal quadric (uses default settings)
   g_normalObject = gluNewQuadric();
 
@@ -385,7 +305,7 @@ void init_data(void)
 }
 //=========================================================//
 //=========================================================//
-void cleanUP_data(void)
+void cleanup_data(void)
 {  // delete all quadratic objects
   if (g_normalObject)
     gluDeleteQuadric(g_normalObject);
@@ -414,7 +334,7 @@ int main(int argc, char *argv[])
 
     // environment background color
     glClearColor(0.9,0.9,0.7,1);//(1,1,1,1);
-    // deepth efect to objects
+    // depth efect to objects
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     // light and material in the environment
@@ -423,7 +343,7 @@ int main(int argc, char *argv[])
     glEnable(GL_COLOR_MATERIAL);
 
     glutMainLoop();
-    cleanUP_data();
+    cleanup_data();
 
     return EXIT_SUCCESS;
 }
